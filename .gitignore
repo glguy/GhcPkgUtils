@@ -1,0 +1,6 @@
+*.hi
+*.o
+/Outdated
+/MultiVersion
+/Unregister
+.*.swp
