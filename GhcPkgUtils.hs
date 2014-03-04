@@ -6,11 +6,11 @@ import qualified Unregister
 import qualified Outdated
 import qualified MultiVersion
 
-knownProgs :: [(String,[String] -> IO ()]
+knownProgs :: [(String,[String] -> IO ())]
 knownProgs =
-  [ ("unregister",      Unregister.main)
-  , ("outdated",        Outdated.main)
-  , ("multi-version",   MultiVersion.main)
+  [ ("unregister",    Unregister.main)
+  , ("outdated",      Outdated.main)
+  , ("multiversion",  MultiVersion.main)
   ]
 
 main :: IO ()
