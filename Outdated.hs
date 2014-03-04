@@ -4,10 +4,12 @@ import Data.Char                (isSpace)
 import System.Process           (readProcess)
 import qualified Data.Map as Map
 import Data.Map (Map)
+import Data.Maybe (mapMaybe)
 import System.Environment
 import System.Console.GetOpt
 import System.Exit
 import System.IO
+import System.FilePath
 import Data.List
 
 import CabalVersions
@@ -15,7 +17,7 @@ main :: [String] -> IO ()
 main args = do
   config <- getConfig args
   userPackages <- fmap processPackageList ghcPkgListUser
-  latest  <- loadLatestVersions "/Users/emertens/Library/Haskell/repo-cache/hackage.haskell.org/00-index.tar.gz"
+  latest  <- loadLatestVersions =<< determineRepoCachePath
   mapM_ (check config latest) userPackages
 
 ghcPkgListUser :: IO String
@@ -62,3 +64,14 @@ getConfig args =
                       exitFailure
     (_,_,_) -> do hPutStrLn stderr "Unsupported arguments"
                   exitFailure
+
+determineRepoCachePath :: IO FilePath
+determineRepoCachePath =
+  do home <- getEnv "HOME"
+     let cabalConfig = home </> ".cabal" </> "config"
+     txt <- readFile cabalConfig
+     case mapMaybe (stripPrefix "remote-repo-cache:") (lines txt) of
+       [path] -> let dir = dropWhile isSpace (dropWhileEnd isSpace path)
+                 in return (dir </> "hackage.haskell.org" </> "00-index.tar.gz")
+       [] -> fail "No remote-repo-cache field in ~/.cabal/config"
+       _  -> fail "Ambiguous remote-repo-cache in ~/.cabal/config"
