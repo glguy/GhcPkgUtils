@@ -1,13 +1,12 @@
-module Main where
+module Main (main) where
 
 import Data.List
 import Data.List.Split
-import Data.List.Split
 import qualified Data.Map as Map
-import Control.Lens
 import Text.Read (readMaybe)
 import System.Process
 
+main ::  IO ()
 main = do
   pkgs <- readProcess "ghc-pkg" ["list"] ""
   putStr
@@ -17,7 +16,7 @@ main = do
      . Map.filter (not . null)
      . fmap removeMaximum
      . Map.fromListWith (++)
-     . fmap (over _2 return . splitVersion)
+     . fmap (fmap return . splitVersion)
      . filter ("   " `isPrefixOf`)
      . lines
      $ pkgs
@@ -25,6 +24,7 @@ main = do
 removeMaximum :: [Version] -> [Version]
 removeMaximum xs = delete (maximum xs) xs
 
+splitVersion :: String -> (String, Version)
 splitVersion xs = (name, readVersion version)
   where
   (a,_:b) = break (=='-') (reverse xs)
@@ -34,9 +34,11 @@ splitVersion xs = (name, readVersion version)
 newtype Version = Version [Int]
   deriving (Eq, Ord)
 
+readVersion :: String -> Version
 readVersion x =
   case mapM readMaybe (splitOn "." (x \\ "()")) of
     Nothing -> error x
     Just v -> Version v
 
+showVersion :: Version -> String
 showVersion (Version v) = intercalate "." (map show v)
