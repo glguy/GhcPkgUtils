@@ -1,4 +1,4 @@
-module Main (main) where
+module MultiVersion where
 
 import Data.List
 import Data.List.Split
@@ -6,8 +6,8 @@ import qualified Data.Map as Map
 import Text.Read (readMaybe)
 import System.Process
 
-main ::  IO ()
-main = do
+main :: [String] -> IO ()
+main _args = do
   pkgs <- readProcess "ghc-pkg" ["list"] ""
   putStr
      . unlines

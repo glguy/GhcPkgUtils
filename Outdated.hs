@@ -1,4 +1,4 @@
-module Main where
+module Outdated where
 
 import Data.Char                (isSpace)
 import System.Process           (readProcess)
@@ -11,9 +11,9 @@ import System.IO
 import Data.List
 
 import CabalVersions
-main :: IO ()
-main = do
-  config <- getConfig
+main :: [String] -> IO ()
+main args = do
+  config <- getConfig args
   userPackages <- fmap processPackageList ghcPkgListUser
   latest  <- loadLatestVersions "/Users/emertens/Library/Haskell/repo-cache/hackage.haskell.org/00-index.tar.gz"
   mapM_ (check config latest) userPackages
@@ -54,9 +54,8 @@ defaultConfig = Config False
 optDescs :: [OptDescr (Config -> Config)]
 optDescs = [Option ['q'] ["quiet"] (NoArg (\c -> c { quiet = True })) "generate machine readable output"]
 
-getConfig :: IO Config
-getConfig = do
-  args <- getArgs
+getConfig :: [String] -> IO Config
+getConfig args =
   case getOpt Permute optDescs args of
     (fns, [], []) -> return (foldl' (\config fn -> fn config) defaultConfig fns)
     (_,[],errs) -> do mapM_ (hPutStrLn stderr) errs

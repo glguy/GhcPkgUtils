@@ -1,4 +1,4 @@
-module Main where
+module Unregister where
 
 import System.Process
 import Control.Monad
@@ -31,8 +31,8 @@ parseDepends
 
 -- | Unregister the given list of packages and return
 -- the full list of unregistered packages.
-recursiveUnregisterPackages :: [String] -> IO ()
-recursiveUnregisterPackages = aux []
+main :: [String] -> IO ()
+main = aux []
   where
   aux visited [] = return ()
   aux visited (name:names)
@@ -49,5 +49,3 @@ recursiveUnregisterPackages = aux []
             putStrLn ("Not found: " ++ name)
             aux visited names
 
-main :: IO ()
-main = recursiveUnregisterPackages =<< getArgs
