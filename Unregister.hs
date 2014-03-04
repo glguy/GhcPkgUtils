@@ -31,22 +31,23 @@ parseDepends
 
 -- | Unregister the given list of packages and return
 -- the full list of unregistered packages.
-recursiveUnregisterPackages :: [String] -> IO [String]
-recursiveUnregisterPackages = foldM aux []
+recursiveUnregisterPackages :: [String] -> IO ()
+recursiveUnregisterPackages = aux []
   where
-  aux visited name
-    | name `elem` visited = return visited
+  aux visited [] = return ()
+  aux visited (name:names)
+    | name `elem` visited = aux visited names
     | otherwise = do
         res <- unregisterPackage name
         case res of
           Success -> do
-            putStrLn ("Unregistered " ++ name)
-            return (name:visited)
+            putStrLn ("Unregistered: " ++ name)
+            aux (name:visited) names
           Depends deps -> do
-            visited' <- foldM aux visited deps
-            aux visited' name
+            aux visited (deps ++ name:names)
           NotFound -> do
-            fail (name ++ " not found")
+            putStrLn ("Not found: " ++ name)
+            aux visited names
 
 main :: IO ()
-main = void (recursiveUnregisterPackages =<< getArgs)
+main = recursiveUnregisterPackages =<< getArgs
