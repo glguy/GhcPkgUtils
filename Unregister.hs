@@ -1,5 +1,6 @@
 module Unregister where
 
+import GhcPkgPath
 import System.Process
 import Control.Monad
 import System.Exit
@@ -13,7 +14,8 @@ data UnregisterOutcome
 
 unregisterPackage :: String -> IO UnregisterOutcome
 unregisterPackage name = do
-  (exit, out, err) <- readProcessWithExitCode "ghc-pkg" ["unregister",name] ""
+  ghc_pkg <- getGhcPkgPath
+  (exit, out, err) <- readProcessWithExitCode ghc_pkg ["unregister",name] ""
   return $ case exit of
     ExitSuccess -> Success
     _ | "ghc-pkg: cannot find package" `isPrefixOf` err -> NotFound

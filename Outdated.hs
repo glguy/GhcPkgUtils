@@ -1,5 +1,6 @@
 module Outdated where
 
+import GhcPkgPath
 import Data.Char                (isSpace)
 import System.Process           (readProcess)
 import qualified Data.Map as Map
@@ -21,7 +22,9 @@ main args = do
   mapM_ (check config latest) userPackages
 
 ghcPkgListUser :: IO String
-ghcPkgListUser = readProcess "ghc-pkg" ["list", "--user"] ""
+ghcPkgListUser =
+  do ghc_pkg <- getGhcPkgPath
+     readProcess ghc_pkg ["list", "--user"] ""
 
 check :: Config -> Map String Version -> (String, Version) -> IO ()
 check config latest (name, currentVersion) =

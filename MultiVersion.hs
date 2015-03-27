@@ -1,5 +1,6 @@
 module MultiVersion where
 
+import GhcPkgPath
 import Data.List
 import Data.List.Split
 import qualified Data.Map as Map
@@ -8,7 +9,8 @@ import System.Process
 
 main :: [String] -> IO ()
 main _args = do
-  pkgs <- readProcess "ghc-pkg" ["list"] ""
+  ghc_pkg <- getGhcPkgPath
+  pkgs <- readProcess ghc_pkg ["list"] ""
   putStr
      . unlines
      . concatMap (\(p,vs) -> map (\v -> p ++ "-" ++ showVersion v) vs)
