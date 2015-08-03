@@ -1,15 +1,16 @@
 module MultiVersion where
 
-import GhcPkgPath
+import Config
 import Data.List
+import Data.Maybe
 import Data.List.Split
 import qualified Data.Map as Map
 import Text.Read (readMaybe)
 import System.Process
 
-main :: [String] -> IO ()
-main _args = do
-  ghc_pkg <- getGhcPkgPath
+main :: Config -> [String] -> IO ()
+main config _args = do
+  let ghc_pkg = fromMaybe "ghc-pkg" (hcPkgPath config)
   pkgs <- readProcess ghc_pkg ["list"] ""
   putStr
      . unlines

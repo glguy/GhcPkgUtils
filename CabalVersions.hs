@@ -2,13 +2,11 @@ module CabalVersions where
 
 import Codec.Compression.GZip (decompress)
 import Control.Monad
-import Data.List (isSuffixOf, intercalate)
-import Data.List.Split (splitOn)
+import Data.List (isSuffixOf)
 import Data.Map (Map)
 import Data.Maybe (mapMaybe)
 import Data.Version
 import System.FilePath
-import Text.Read (readMaybe)
 import qualified Codec.Archive.Tar as Tar
 import qualified Data.ByteString.Lazy as L
 import qualified Data.Map as Map

@@ -1,30 +1,22 @@
 module Outdated where
 
-import GhcPkgPath
-import Data.Char                (isSpace)
-import System.Process           (readProcess)
 import qualified Data.Map as Map
 import Data.Map (Map)
-import Data.Maybe (mapMaybe, listToMaybe)
-import Data.List
+import Data.Maybe (listToMaybe)
 import Data.Version
 
 import System.Directory (getAppUserDataDirectory)
-import System.Environment
-import System.Console.GetOpt
-import System.Exit
-import System.IO
 import System.FilePath
 
 import Distribution.ParseUtils
 
+import Config
 import CabalVersions (loadLatestVersions)
 import InstalledPackages (getInstalledPackages)
 
-main :: [String] -> IO ()
-main args = do
-  config <- getConfig args
-  userPackages <- getInstalledPackages
+main :: Config -> [String] -> IO ()
+main config _ = do
+  userPackages <- getInstalledPackages config
   latest  <- loadLatestVersions =<< determineRepoCachePath
   mapM_ (check config latest) userPackages
 
@@ -33,33 +25,12 @@ check config latest (name, currentVersion) =
   case Map.lookup name latest of
     Just cabalVersion
       | cabalVersion > currentVersion ->
-          if quiet config
-          then putStrLn name
-          else putStrLn (name ++ " current: " ++ showVersion currentVersion
-                              ++ " latest: "  ++ showVersion cabalVersion)
+          let output
+                | quiet config = name
+                | otherwise = name ++ " current: " ++ showVersion currentVersion
+                                   ++ " latest: "  ++ showVersion cabalVersion
+          in putStrLn output
     _ -> return ()
-
---
--- Command line stuff
---
-
-data Config = Config
-  { quiet :: !Bool }
-
-defaultConfig :: Config
-defaultConfig = Config False
-
-optDescs :: [OptDescr (Config -> Config)]
-optDescs = [Option ['q'] ["quiet"] (NoArg (\c -> c { quiet = True })) "generate machine readable output"]
-
-getConfig :: [String] -> IO Config
-getConfig args =
-  case getOpt Permute optDescs args of
-    (fns, [], []) -> return (foldl' (\config fn -> fn config) defaultConfig fns)
-    (_,[],errs) -> do mapM_ (hPutStrLn stderr) errs
-                      exitFailure
-    (_,_,_) -> do hPutStrLn stderr "Unsupported arguments"
-                  exitFailure
 
 --
 -- Look up cabal's repository cache
@@ -93,4 +64,4 @@ loadCabalConfig =
        ParseOk _warnings fields -> return fields
 
 lookupField :: String -> [Field] -> Maybe String
-lookupField fieldName fields = listToMaybe [ v | F _ k v <- fields, fieldName == k ]
+lookupField k fields = listToMaybe [ v | F _ k' v <- fields, k == k' ]

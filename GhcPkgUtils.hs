@@ -2,11 +2,13 @@ module Main(main) where
 
 import System.Environment(getArgs)
 import System.IO(hPutStrLn, stderr)
+
+import Config (Config, getConfig)
 import qualified Unregister
 import qualified Outdated
 import qualified MultiVersion
 
-knownProgs :: [(String,[String] -> IO ())]
+knownProgs :: [(String,Config -> [String] -> IO ())]
 knownProgs =
   [ ("unregister",    Unregister.main)
   , ("outdated",      Outdated.main)
@@ -15,12 +17,12 @@ knownProgs =
 
 main :: IO ()
 main =
-  do as <- getArgs
+  do (c,as) <- getConfig =<< getArgs
      case as of
        [] -> showUsage
        cmd : params ->
          case lookup cmd knownProgs of
-           Just go -> go params
+           Just go -> go c params
            Nothing -> do hPutStrLn stderr ("Unknown command: " ++ cmd)
                          showUsage
 
