@@ -3,7 +3,6 @@ module Unregister where
 import System.Process
 import System.Exit
 import Data.List
-import Data.Maybe
 
 import Config
 
@@ -12,9 +11,16 @@ data UnregisterOutcome
   | NotFound
   | Depends [String]
 
+computeGhcPkg :: Config -> FilePath
+computeGhcPkg config =
+  case (hcPath config, hcPkgPath config) of
+    (_, Just p) -> p
+    (Just p, _) -> p ++ "-pkg"
+    _           -> "ghc-pkg"
+
 unregisterPackage :: Config -> String -> IO UnregisterOutcome
 unregisterPackage config name = do
-  let ghc_pkg = fromMaybe "ghc-pkg" (hcPkgPath config)
+  let ghc_pkg = computeGhcPkg config
   (exit, _out, err) <- readProcessWithExitCode ghc_pkg ["unregister",name] ""
   return $ case exit of
     ExitSuccess -> Success
