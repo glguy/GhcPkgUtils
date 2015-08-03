@@ -5,13 +5,17 @@ import Data.Char                (isSpace)
 import System.Process           (readProcess)
 import qualified Data.Map as Map
 import Data.Map (Map)
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, listToMaybe)
+import Data.List
+
+import System.Directory (getAppUserDataDirectory)
 import System.Environment
 import System.Console.GetOpt
 import System.Exit
 import System.IO
 import System.FilePath
-import Data.List
+
+import Distribution.ParseUtils
 
 import CabalVersions
 main :: [String] -> IO ()
@@ -70,11 +74,30 @@ getConfig args =
 
 determineRepoCachePath :: IO FilePath
 determineRepoCachePath =
-  do home <- getEnv "HOME"
-     let cabalConfig = home </> ".cabal" </> "config"
-     txt <- readFile cabalConfig
-     case mapMaybe (stripPrefix "remote-repo-cache:") (lines txt) of
-       [path] -> let dir = dropWhile isSpace (dropWhileEnd isSpace path)
-                 in return (dir </> "hackage.haskell.org" </> "00-index.tar.gz")
-       [] -> fail "No remote-repo-cache field in ~/.cabal/config"
-       _  -> fail "Ambiguous remote-repo-cache in ~/.cabal/config"
+  do cabalConfig <- loadCabalConfig
+     case lookupField "remote-repo-cache" cabalConfig of
+       Nothing -> fail "No remote-repo-cache field in cabal configuration"
+       Just dir -> return (dir </> "hackage.haskell.org" </> "00-index.tar.gz")
+
+-- | Default cabal configuration directory as defined in
+-- Distribution.Client.Config
+defaultCabalDir :: IO FilePath
+defaultCabalDir = getAppUserDataDirectory "cabal"
+
+-- | Default cabal configuration file as defined in
+-- Distribution.Client.Config
+defaultCabalConfigFile :: IO FilePath
+defaultCabalConfigFile =
+  do dir <- defaultCabalDir
+     return (dir </> "config")
+
+loadCabalConfig :: IO [Field]
+loadCabalConfig =
+  do cabalFileName <- defaultCabalConfigFile
+     contents      <- readFile cabalFileName
+     case readFields contents of
+       ParseFailed perror -> fail ("Unable to parse cabal configuration: " ++ show perror)
+       ParseOk _warnings fields     -> return fields
+
+lookupField :: String -> [Field] -> Maybe String
+lookupField fieldName fields = listToMaybe [ v | F _ k v <- fields, fieldName == k ]
