@@ -8,7 +8,7 @@ import Distribution.Simple.Program.Db (defaultProgramDb)
 import Distribution.InstalledPackageInfo (InstalledPackageInfo_(..))
 import Distribution.Package (PackageIdentifier(..), PackageName(..))
 import Distribution.Simple.Compiler (PackageDB(..))
-import Distribution.Simple.PackageIndex (InstalledPackageIndex, allPackages)
+import Distribution.Simple.PackageIndex (allPackages)
 import Distribution.Simple.Program (ProgramConfiguration)
 
 import Config

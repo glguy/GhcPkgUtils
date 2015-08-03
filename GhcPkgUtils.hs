@@ -30,6 +30,3 @@ showUsage :: IO ()
 showUsage =
   do hPutStrLn stderr "Valid commands:"
      hPutStrLn stderr $ unlines $ map fst knownProgs
-
-
-

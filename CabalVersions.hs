@@ -2,7 +2,6 @@ module CabalVersions where
 
 import Codec.Compression.GZip (decompress)
 import Control.Monad
-import Data.List (isSuffixOf)
 import Data.Map (Map)
 import Data.Maybe (mapMaybe)
 import Data.Version
@@ -10,7 +9,7 @@ import System.FilePath
 import qualified Codec.Archive.Tar as Tar
 import qualified Data.ByteString.Lazy as L
 import qualified Data.Map as Map
-import Text.ParserCombinators.ReadP (ReadP, readP_to_S, eof)
+import Text.ParserCombinators.ReadP (readP_to_S, eof)
 
 --
 -- Version strings
@@ -37,13 +36,12 @@ entriesToPaths (Tar.Next e es) = (Tar.entryPath e :) `liftM` entriesToPaths es
 pathToPackageVersion :: FilePath -> Maybe (String, Version)
 pathToPackageVersion path = do
   [name, versionStr, cabal] <- return (splitDirectories path)
-  let cabalSuffix = "" <.> "cabal"
-  guard (cabalSuffix `isSuffixOf` cabal)
-  version <- runParser parseVersion versionStr
+  guard (cabal == name <.> "cabal")
+  version <- parseVersion' versionStr
   return (name, version)
 
-runParser :: ReadP a -> String -> Maybe a
-runParser p str =
-  case readP_to_S (p <* eof) str of
+parseVersion' :: String -> Maybe Version
+parseVersion' str =
+  case readP_to_S (parseVersion <* eof) str of
     [(x,"")] -> Just x
     _        -> Nothing

@@ -32,6 +32,3 @@ executable GhcPkgUtils
     process       >=1.1  && <1.3
 
   default-language:    Haskell2010
-
-
-

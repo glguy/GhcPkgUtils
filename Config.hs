@@ -1,7 +1,7 @@
 module Config where
 
+import Control.Monad (when)
 import Data.List (foldl')
-
 import System.Console.GetOpt
 import System.Environment
 import System.Exit
@@ -12,7 +12,7 @@ import System.IO
 --
 
 data Config = Config
-  { quiet :: !Bool
+  { quiet :: Bool
   , hcPath :: Maybe FilePath
   , hcPkgPath :: Maybe FilePath
   , showUsage :: Bool
@@ -40,9 +40,8 @@ getConfig args =
   case getOpt Permute optDescs args of
     (fns, cmds, []) ->
       do let c = foldl' (\config fn -> fn config) defaultConfig fns
-         case cmds of
-           [cmd] | not (showUsage c) -> return (c,cmds)
-           _     -> printUsage
+         when (showUsage c) printUsage
+         return (c,cmds)
     (_,[],errs) -> do mapM_ (hPutStrLn stderr) errs
                       exitFailure
     (_,_,_) -> do hPutStrLn stderr "Unsupported arguments"
