@@ -9,6 +9,7 @@ import Distribution.Simple.Compiler (PackageDBStack)
 import Distribution.Simple.PackageIndex (allPackages)
 import Distribution.InstalledPackageInfo (InstalledPackageInfo_(..))
 import Distribution.Package (PackageIdentifier(..), PackageName(..))
+import Distribution.Simple.PackageIndex (InstalledPackageIndex)
 
 import Config
 
@@ -16,14 +17,16 @@ import Config
 -- Programatically query the installed package DB
 --
 
-getPackages :: Config -> PackageDBStack -> IO [(String, Version)]
-getPackages config packageDbStack =
+getPackageIndex :: Config -> PackageDBStack -> IO InstalledPackageIndex
+getPackageIndex config packageDbStack =
   do (_compiler, _platform, programConfiguration)
        <- configure silent (hcPath config) (hcPkgPath config) defaultProgramDb
 
-     packageIndex
-       <- getInstalledPackages silent packageDbStack programConfiguration
+     getInstalledPackages silent packageDbStack programConfiguration
 
+getPackages :: Config -> PackageDBStack -> IO [(String, Version)]
+getPackages config packageDbStack =
+  do packageIndex <- getPackageIndex config packageDbStack
      return
        [ ( unPackageName (pkgName pkgId), pkgVersion pkgId )
        | pkgInfo <- allPackages packageIndex
