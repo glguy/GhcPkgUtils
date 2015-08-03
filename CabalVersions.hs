@@ -6,27 +6,20 @@ import Data.List (isSuffixOf, intercalate)
 import Data.List.Split (splitOn)
 import Data.Map (Map)
 import Data.Maybe (mapMaybe)
+import Data.Version
 import System.FilePath
 import Text.Read (readMaybe)
 import qualified Codec.Archive.Tar as Tar
 import qualified Data.ByteString.Lazy as L
 import qualified Data.Map as Map
+import Text.ParserCombinators.ReadP (ReadP, readP_to_S, eof)
 
 --
 -- Version strings
 --
 
-newtype Version = Version { versionComponents :: [Int] }
-  deriving (Read, Show, Ord, Eq)
-
-prettyVersion :: Version -> String
-prettyVersion = intercalate "." . map show . versionComponents
-
 loadLatestVersions :: FilePath -> IO (Map String Version)
 loadLatestVersions = fmap (Map.fromListWith max) . loadCabalEntries
-
-parseVersion :: String -> Maybe Version
-parseVersion = fmap Version . mapM readMaybe . splitOn "."
 
 --
 --
@@ -48,5 +41,11 @@ pathToPackageVersion path = do
   [name, versionStr, cabal] <- return (splitDirectories path)
   let cabalSuffix = "" <.> "cabal"
   guard (cabalSuffix `isSuffixOf` cabal)
-  version <- parseVersion versionStr
+  version <- runParser parseVersion versionStr
   return (name, version)
+
+runParser :: ReadP a -> String -> Maybe a
+runParser p str =
+  case readP_to_S (p <* eof) str of
+    [(x,"")] -> Just x
+    _        -> Nothing

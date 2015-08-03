@@ -7,6 +7,7 @@ import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (mapMaybe, listToMaybe)
 import Data.List
+import Data.Version
 
 import System.Directory (getAppUserDataDirectory)
 import System.Environment
@@ -17,18 +18,15 @@ import System.FilePath
 
 import Distribution.ParseUtils
 
-import CabalVersions
+import CabalVersions (loadLatestVersions)
+import InstalledPackages (getInstalledPackages)
+
 main :: [String] -> IO ()
 main args = do
   config <- getConfig args
-  userPackages <- fmap processPackageList ghcPkgListUser
+  userPackages <- getInstalledPackages
   latest  <- loadLatestVersions =<< determineRepoCachePath
   mapM_ (check config latest) userPackages
-
-ghcPkgListUser :: IO String
-ghcPkgListUser =
-  do ghc_pkg <- getGhcPkgPath
-     readProcess ghc_pkg ["list", "--user"] ""
 
 check :: Config -> Map String Version -> (String, Version) -> IO ()
 check config latest (name, currentVersion) =
@@ -37,18 +35,9 @@ check config latest (name, currentVersion) =
       | cabalVersion > currentVersion ->
           if quiet config
           then putStrLn name
-          else putStrLn (name ++ " current: " ++ prettyVersion currentVersion
-                              ++ " latest: "  ++ prettyVersion cabalVersion)
+          else putStrLn (name ++ " current: " ++ showVersion currentVersion
+                              ++ " latest: "  ++ showVersion cabalVersion)
     _ -> return ()
-
-processPackageList :: String -> [(String, Version)]
-processPackageList = map clean1 . init . tail . lines
-  where
-  clean1 xs = (name, version)
-    where
-    (version', name') = break (== '-') (reverse (dropWhile isSpace xs))
-    name = reverse (drop 1 name')
-    Just version = parseVersion (reverse version')
 
 --
 -- Command line stuff
@@ -72,6 +61,10 @@ getConfig args =
     (_,_,_) -> do hPutStrLn stderr "Unsupported arguments"
                   exitFailure
 
+--
+-- Look up cabal's repository cache
+--
+
 determineRepoCachePath :: IO FilePath
 determineRepoCachePath =
   do cabalConfig <- loadCabalConfig
@@ -94,10 +87,10 @@ defaultCabalConfigFile =
 loadCabalConfig :: IO [Field]
 loadCabalConfig =
   do cabalFileName <- defaultCabalConfigFile
-     contents      <- readFile cabalFileName
+     contents <- readFile cabalFileName
      case readFields contents of
        ParseFailed perror -> fail ("Unable to parse cabal configuration: " ++ show perror)
-       ParseOk _warnings fields     -> return fields
+       ParseOk _warnings fields -> return fields
 
 lookupField :: String -> [Field] -> Maybe String
 lookupField fieldName fields = listToMaybe [ v | F _ k v <- fields, fieldName == k ]
