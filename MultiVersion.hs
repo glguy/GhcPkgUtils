@@ -1,17 +1,17 @@
 module MultiVersion where
 
-import Config
 import Data.List
-import Data.Maybe
-import Data.List.Split
 import qualified Data.Map as Map
-import Text.Read (readMaybe)
-import System.Process
+import Data.Version
+
+import Distribution.Simple.Compiler (PackageDB(GlobalPackageDB,UserPackageDB))
+
+import Config
+import InstalledPackages
 
 main :: Config -> [String] -> IO ()
 main config _args = do
-  let ghc_pkg = fromMaybe "ghc-pkg" (hcPkgPath config)
-  pkgs <- readProcess ghc_pkg ["list"] ""
+  pkgs <- getPackages config [GlobalPackageDB, UserPackageDB]
   putStr
      . unlines
      . concatMap (\(p,vs) -> map (\v -> p ++ "-" ++ showVersion v) vs)
@@ -19,29 +19,8 @@ main config _args = do
      . Map.filter (not . null)
      . fmap removeMaximum
      . Map.fromListWith (++)
-     . fmap (fmap return . splitVersion)
-     . filter ("   " `isPrefixOf`)
-     . lines
+     . map (\(x,y) -> (x,[y]))
      $ pkgs
 
 removeMaximum :: [Version] -> [Version]
 removeMaximum xs = delete (maximum xs) xs
-
-splitVersion :: String -> (String, Version)
-splitVersion xs = (name, readVersion version)
-  where
-  (a,_:b) = break (=='-') (reverse xs)
-  name = reverse b
-  version = reverse a
-
-newtype Version = Version [Int]
-  deriving (Eq, Ord)
-
-readVersion :: String -> Version
-readVersion x =
-  case mapM readMaybe (splitOn "." (x \\ "()")) of
-    Nothing -> error x
-    Just v -> Version v
-
-showVersion :: Version -> String
-showVersion (Version v) = intercalate "." (map show v)

@@ -2,10 +2,10 @@ module InstalledPackages where
 
 import Data.Version
 
-import Distribution.Simple.GHC (configure, getPackageDBContents)
+import Distribution.Simple.GHC (configure, getInstalledPackages)
 import Distribution.Verbosity (silent)
 import Distribution.Simple.Program.Db (defaultProgramDb)
-import Distribution.Simple.Compiler (PackageDB(UserPackageDB))
+import Distribution.Simple.Compiler (PackageDBStack)
 import Distribution.Simple.PackageIndex (allPackages)
 import Distribution.InstalledPackageInfo (InstalledPackageInfo_(..))
 import Distribution.Package (PackageIdentifier(..), PackageName(..))
@@ -16,13 +16,13 @@ import Config
 -- Programatically query the installed package DB
 --
 
-getInstalledPackages :: Config -> IO [(String, Version)]
-getInstalledPackages config =
+getPackages :: Config -> PackageDBStack -> IO [(String, Version)]
+getPackages config packageDbStack =
   do (_compiler, _platform, programConfiguration)
        <- configure silent (hcPath config) (hcPkgPath config) defaultProgramDb
 
      packageIndex
-       <- getPackageDBContents silent UserPackageDB programConfiguration
+       <- getInstalledPackages silent packageDbStack programConfiguration
 
      return
        [ ( unPackageName (pkgName pkgId), pkgVersion pkgId )

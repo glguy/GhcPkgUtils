@@ -8,15 +8,16 @@ import Data.Version
 import System.Directory (getAppUserDataDirectory)
 import System.FilePath
 
+import Distribution.Simple.Compiler (PackageDB(UserPackageDB))
 import Distribution.ParseUtils
 
 import Config
 import CabalVersions (loadLatestVersions)
-import InstalledPackages (getInstalledPackages)
+import InstalledPackages (getPackages)
 
 main :: Config -> [String] -> IO ()
 main config _ = do
-  userPackages <- getInstalledPackages config
+  userPackages <- getPackages config [UserPackageDB]
   latest  <- loadLatestVersions =<< determineRepoCachePath
   mapM_ (check config latest) userPackages
 
