@@ -4,14 +4,12 @@ import Data.List
 import qualified Data.Map as Map
 import Data.Version
 
-import Distribution.Simple.Compiler (PackageDB(GlobalPackageDB,UserPackageDB))
-
 import Config
 import InstalledPackages
 
 main :: Config -> [String] -> IO ()
 main config _args = do
-  pkgs <- getPackages config [GlobalPackageDB, UserPackageDB]
+  pkgs <- getAllPackages config
   putStr
      . unlines
      . concatMap (\(p,vs) -> map (\v -> p ++ "-" ++ showVersion v) vs)
