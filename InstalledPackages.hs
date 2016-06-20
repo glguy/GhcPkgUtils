@@ -2,13 +2,14 @@ module InstalledPackages where
 
 import Data.Version
 
-import Distribution.Simple.GHC (configure, getPackageDBContents, getInstalledPackages)
+import Distribution.Simple.GHC
+   (configure, getPackageDBContents, getInstalledPackages)
 import Distribution.Verbosity (silent)
 import Distribution.Simple.Program.Db (defaultProgramDb)
-import Distribution.InstalledPackageInfo (InstalledPackageInfo_(..))
+--import Distribution.InstalledPackageInfo (InstalledPackageInfo_(..))
 import Distribution.Package (PackageIdentifier(..), PackageName(..))
-import Distribution.Simple.Compiler (PackageDB(..))
-import Distribution.Simple.PackageIndex (allPackages)
+import Distribution.Simple.Compiler (Compiler, PackageDB(..))
+import Distribution.Simple.PackageIndex (InstalledPackageIndex, allPackages)
 import Distribution.Simple.Program (ProgramConfiguration)
 
 import Config
@@ -17,26 +18,19 @@ import Config
 -- Programatically query the installed package DB
 --
 
-getProgramConfiguration :: Config -> IO ProgramConfiguration
+getProgramConfiguration :: Config -> IO (Compiler, ProgramConfiguration)
 getProgramConfiguration config =
-  do (_compiler, _platform, programConfiguration)
+  do (compiler, _platform, programConfiguration)
        <- configure silent (hcPath config) (hcPkgPath config) defaultProgramDb
-     return programConfiguration
+     return (compiler, programConfiguration)
 
-getAllPackages :: Config -> IO [(String, Version)]
+getAllPackages :: Config -> IO InstalledPackageIndex
 getAllPackages config =
-  do programConfiguration <- getProgramConfiguration config
-     packageIndex <- getInstalledPackages silent [GlobalPackageDB, UserPackageDB] programConfiguration
-     return
-       [ ( unPackageName (pkgName pkgId), pkgVersion pkgId )
-       | pkgInfo <- allPackages packageIndex
-       , let pkgId = sourcePackageId pkgInfo ]
+  do (compiler, programConfiguration) <- getProgramConfiguration config
+     getInstalledPackages silent compiler [GlobalPackageDB, UserPackageDB] programConfiguration
 
-getUserPackages :: Config -> IO [(String, Version)]
+
+getUserPackages :: Config -> IO InstalledPackageIndex
 getUserPackages config =
-  do programConfiguration <- getProgramConfiguration config
-     pkgs <- getPackageDBContents silent UserPackageDB programConfiguration
-     return
-       [ ( unPackageName (pkgName pkgId), pkgVersion pkgId )
-       | pkgInfo <- allPackages pkgs
-       , let pkgId = sourcePackageId pkgInfo ]
+  do (_, programConfiguration) <- getProgramConfiguration config
+     getPackageDBContents silent UserPackageDB programConfiguration

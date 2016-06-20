@@ -3,6 +3,10 @@ module MultiVersion where
 import Data.List
 import qualified Data.Map as Map
 import Data.Version
+import Distribution.Simple.PackageIndex (InstalledPackageIndex, allPackages)
+import Distribution.Package (PackageIdentifier(..), PackageName(..))
+import Distribution.InstalledPackageInfo (InstalledPackageInfo(..))
+
 
 import Config
 import InstalledPackages
@@ -18,7 +22,14 @@ main config _args = do
      . fmap removeMaximum
      . Map.fromListWith (++)
      . map (\(x,y) -> (x,[y]))
-     $ pkgs
+     . map toPkgTuple
+     $ allPackages pkgs
+
+toPkgTuple pkg = (name, currentVersion)
+  where
+  pkgId = sourcePackageId pkg
+  name = unPackageName (pkgName pkgId)
+  currentVersion = pkgVersion pkgId
 
 removeMaximum :: [Version] -> [Version]
 removeMaximum xs = delete (maximum xs) xs

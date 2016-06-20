@@ -9,6 +9,9 @@ import System.Directory (getAppUserDataDirectory)
 import System.FilePath
 
 import Distribution.ParseUtils
+import Distribution.InstalledPackageInfo (InstalledPackageInfo(..))
+import Distribution.Simple.PackageIndex (allPackages)
+import Distribution.Package(PackageIdentifier(..), PackageName(..))
 
 import Config
 import CabalVersions (loadLatestVersions)
@@ -18,10 +21,14 @@ main :: Config -> [String] -> IO ()
 main config _ = do
   userPackages <- getUserPackages config
   latest  <- loadLatestVersions =<< determineRepoCachePath
-  mapM_ (check config latest) userPackages
+  mapM_ (check config latest) (allPackages userPackages)
 
-check :: Config -> Map String Version -> (String, Version) -> IO ()
-check config latest (name, currentVersion) =
+check :: Config -> Map String Version -> InstalledPackageInfo -> IO ()
+check config latest pkg =
+  let pkgId = sourcePackageId pkg
+      name = unPackageName (pkgName pkgId)
+      currentVersion = pkgVersion pkgId
+  in
   case Map.lookup name latest of
     Just cabalVersion
       | cabalVersion > currentVersion ->
