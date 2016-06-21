@@ -1,59 +1,47 @@
 module Unregister where
 
-import System.Process
-import System.Exit
-import Data.List
+import InstalledPackages
+import Distribution.Text
+import Distribution.Package (PackageId)
+import Distribution.Simple.PackageIndex
+import Distribution.InstalledPackageInfo
+import Distribution.Simple.GHC
+import Distribution.Simple.Program.HcPkg
+import Distribution.Simple.Compiler (PackageDB(..))
+import Distribution.Verbosity (normal)
 
 import Config
-
-data UnregisterOutcome
-  = Success
-  | NotFound
-  | Depends [String]
-
-computeGhcPkg :: Config -> FilePath
-computeGhcPkg config =
-  case (hcPath config, hcPkgPath config) of
-    (_, Just p) -> p
-    (Just p, _) -> p ++ "-pkg"
-    _           -> "ghc-pkg"
-
-unregisterPackage :: Config -> String -> IO UnregisterOutcome
-unregisterPackage config name = do
-  let ghc_pkg = computeGhcPkg config
-  (exit, _out, err) <- readProcessWithExitCode ghc_pkg ["unregister",name] ""
-  return $ case exit of
-    ExitSuccess -> Success
-    _ | "ghc-pkg: cannot find package" `isPrefixOf` err -> NotFound
-      | "ghc-pkg: unregistering"       `isPrefixOf` err -> Depends (parseDepends err)
-      | otherwise -> error ("Can't parse: " ++ err)
-
-parseDepends :: String -> [String]
-parseDepends
-  = words
-  . takeWhile (/= '(')
-  . drop 2
-  . dropWhile (/= ':')
-  . drop 1
-  . dropWhile (/= ':')
+import GraphExtraction
 
 -- | Unregister the given list of packages and return
 -- the full list of unregistered packages.
 main :: Config -> [String] -> IO ()
-main config = aux []
-  where
-  aux _ [] = return ()
-  aux visited (name:names)
-    | name `elem` visited = aux visited names
-    | otherwise = do
-        res <- unregisterPackage config name
-        case res of
-          Success -> do
-            putStrLn ("Unregistered: " ++ name)
-            aux (name:visited) names
-          Depends deps -> do
-            aux visited (deps ++ name:names)
-          NotFound -> do
-            putStrLn ("Not found: " ++ name)
-            aux visited names
+main config pkgStrs =
+  do (_,pgmConfig) <- getProgramConfiguration config
+     let hcPkg = hcPkgInfo pgmConfig
+     pkgIds <- traverse parsePkg pkgStrs
+     pkgIndex <- getUserPackages config
+     let plan = computePlan pkgIds pkgIndex
+     mapM_ (unregister hcPkg normal UserPackageDB) plan
 
+parsePkg :: String -> IO PackageId
+parsePkg str =
+  case simpleParse str of
+    Nothing -> fail ("Unable to parse package: " ++ str)
+    Just p -> return p
+
+computePlan ::
+  [PackageId] ->
+  PackageIndex InstalledPackageInfo ->
+  [PackageId]
+computePlan rootIds pkgIndex = sourcePackageId . lookupVertex <$> plan
+  where
+    rootPkgs     = lookupSourcePackageId pkgIndex =<< rootIds
+    rootVertexes = unitIdToVertex' . installedUnitId <$> rootPkgs
+    plan         = extract pkgGraph rootVertexes
+
+    (pkgGraph, lookupVertex, unitIdToVertex) = dependencyGraph pkgIndex
+    unitIdToVertex' i =
+      case unitIdToVertex i of
+        Nothing -> error ("computePlan: " ++ show i)
+        Just v  -> v
