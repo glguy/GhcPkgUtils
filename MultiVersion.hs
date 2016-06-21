@@ -3,7 +3,7 @@ module MultiVersion where
 import Data.List
 import qualified Data.Map as Map
 import Data.Version
-import Distribution.Simple.PackageIndex (InstalledPackageIndex, allPackages)
+import Distribution.Simple.PackageIndex (allPackages)
 import Distribution.Package (PackageIdentifier(..), PackageName(..))
 import Distribution.InstalledPackageInfo (InstalledPackageInfo(..))
 
@@ -25,6 +25,7 @@ main config _args = do
      . map toPkgTuple
      $ allPackages pkgs
 
+toPkgTuple :: InstalledPackageInfo -> (String, Version)
 toPkgTuple pkg = (name, currentVersion)
   where
   pkgId = sourcePackageId pkg

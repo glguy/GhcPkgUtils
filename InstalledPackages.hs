@@ -1,15 +1,11 @@
 module InstalledPackages where
 
-import Data.Version
-
 import Distribution.Simple.GHC
    (configure, getPackageDBContents, getInstalledPackages)
 import Distribution.Verbosity (silent)
 import Distribution.Simple.Program.Db (defaultProgramDb)
---import Distribution.InstalledPackageInfo (InstalledPackageInfo_(..))
-import Distribution.Package (PackageIdentifier(..), PackageName(..))
 import Distribution.Simple.Compiler (Compiler, PackageDB(..))
-import Distribution.Simple.PackageIndex (InstalledPackageIndex, allPackages)
+import Distribution.Simple.PackageIndex (InstalledPackageIndex)
 import Distribution.Simple.Program (ProgramConfiguration)
 
 import Config
